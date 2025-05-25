@@ -2,41 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Emotion Detector</title>
+  <title>Emotion Detector Test</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 20px;
-    }
-    input, button {
-      margin-top: 10px;
-    }
-    img {
-      max-width: 300px;
-      margin: 10px;
-    }
-    #progress {
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    #canvas {
-      margin-top: 10px;
-    }
+    body { font-family: Arial; text-align: center; margin: 20px; }
+    #progress { font-weight: bold; margin-bottom: 10px; }
+    canvas { margin-top: 10px; }
   </style>
 </head>
 <body>
   <h2>Facial Emotion Detector</h2>
-  
   <input type="file" id="imageUpload" accept="image/*" />
-  <br />
-  <div id="progress">Model loading...</div>
+  <div id="progress">Loading model...</div>
   <div id="result"></div>
-  <br />
   <canvas id="canvas"></canvas>
 
-  <!-- Load face-api.js library -->
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
   <script>
     const imageUpload = document.getElementById('imageUpload');
@@ -44,43 +23,38 @@
     const canvas = document.getElementById('canvas');
     const progress = document.getElementById('progress');
 
-    // Load models from your GitHub Pages models folder
     Promise.all([
       faceapi.nets.tinyFaceDetector.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models'),
       faceapi.nets.faceExpressionNet.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models')
     ]).then(() => {
-      progress.innerText = "Model loaded! Upload a face image.";
-    }).catch(err => {
-      progress.innerText = "Error loading models: " + err;
-      console.error(err);
+      progress.textContent = "Model loaded! Please upload a face image.";
+    }).catch(e => {
+      progress.textContent = "Error loading models: " + e;
+      console.error(e);
     });
 
     imageUpload.addEventListener('change', async () => {
       if (!imageUpload.files.length) return;
-      result.innerText = "Detecting...";
-      
-      const image = await faceapi.bufferToImage(imageUpload.files[0]);
 
-      // Clear canvas and previous images
-      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-      canvas.width = image.width;
-      canvas.height = image.height;
+      result.textContent = "Detecting...";
 
-      document.body.appendChild(image);
+      const img = await faceapi.bufferToImage(imageUpload.files[0]);
 
-      const detections = await faceapi
-        .detectAllFaces(image, new faceapi.TinyFaceDetectorOptions())
-        .withFaceExpressions();
+      canvas.width = img.width;
+      canvas.height = img.height;
 
-      faceapi.draw.drawDetections(canvas, detections);
-      faceapi.draw.drawFaceExpressions(canvas, detections);
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
 
-      document.body.removeChild(image); // remove raw image from body
+      const detections = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
 
       if (detections.length === 0) {
-        result.innerText = "No face detected.";
+        result.textContent = "No face detected.";
       } else {
-        result.innerText = "Emotions detected. Check canvas.";
+        result.textContent = "Emotions detected.";
+        faceapi.draw.drawDetections(canvas, detections);
+        faceapi.draw.drawFaceExpressions(canvas, detections);
       }
     });
   </script>
