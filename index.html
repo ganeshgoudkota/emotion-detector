@@ -1,87 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Emotion Detection with Submit and Loading</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Emotion Detector</title>
   <style>
-    body { text-align: center; font-family: sans-serif; margin-top: 50px; }
-    #result { font-size: 20px; margin-top: 20px; }
-    img { max-width: 300px; margin-top: 20px; display: none; }
-    button { margin-left: 10px; padding: 6px 12px; font-size: 16px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    input, button {
+      margin-top: 10px;
+    }
+    img {
+      max-width: 300px;
+      margin: 10px;
+    }
+    #progress {
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
+  <h2>Facial Emotion Detector</h2>
+  
+  <input type="file" id="imageUpload" accept="image/*" />
+  <br/>
+  <div id="progress">Model loading...</div>
+  <div id="result"></div>
+  <br/>
+  <canvas id="canvas"></canvas>
 
-  <h1>Facial Emotion Detection</h1>
-  <input type="file" id="imageUpload" accept="image/*">
-  <button id="submitBtn" disabled>Submit</button>
-  <div id="result">Upload a photo to detect emotion</div>
-  <img id="preview" />
-
-  <!-- Load face-api.js -->
+  <!-- Face API library -->
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
-
   <script>
     const imageUpload = document.getElementById('imageUpload');
-    const preview = document.getElementById('preview');
     const result = document.getElementById('result');
-    const submitBtn = document.getElementById('submitBtn');
-    let selectedFile;
+    const canvas = document.getElementById('canvas');
+    const progress = document.getElementById('progress');
 
-    // Load models
     Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/models'),
-      faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/models')
+      faceapi.nets.tinyFaceDetector.loadFromUri('models'),
+      faceapi.nets.faceExpressionNet.loadFromUri('models')
     ]).then(() => {
-      result.innerText = "Model loaded! Upload a face image.";
+      progress.innerText = "Model loaded! Upload a face image.";
     });
 
-    imageUpload.addEventListener('change', () => {
-      selectedFile = imageUpload.files[0];
-      if (selectedFile) {
-        submitBtn.disabled = true;
-        preview.style.display = "none";
-        result.innerText = "Loading image: 0%";
-        
-        // Start fake progress bar
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += 10;
-          if (progress >= 90) clearInterval(interval);
-          result.innerText = `Loading image: ${progress}%`;
-        }, 100);
-
-        preview.src = URL.createObjectURL(selectedFile);
-        preview.onload = async () => {
-          clearInterval(interval);
-          await preview.decode(); // Ensure image is ready
-          preview.style.display = "block";
-          result.innerText = "Image loaded! Click Submit to detect emotion.";
-          submitBtn.disabled = false;
-        };
-      } else {
-        result.innerText = "Upload a photo to detect emotion.";
-        preview.src = "";
-        preview.style.display = "none";
-        submitBtn.disabled = true;
-      }
-    });
-
-    submitBtn.addEventListener('click', async () => {
-      if (!selectedFile) return;
+    imageUpload.addEventListener('change', async () => {
       result.innerText = "Detecting...";
-      await preview.decode();
+      const image = await faceapi.bufferToImage(imageUpload.files[0]);
+      canvas.innerHTML = "";
+      canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
 
+      document.body.append(image);
       const detections = await faceapi
-        .detectSingleFace(preview, new faceapi.TinyFaceDetectorOptions())
+        .detectAllFaces(image, new faceapi.TinyFaceDetectorOptions())
         .withFaceExpressions();
 
-      if (detections && detections.expressions) {
-        const expressions = detections.expressions;
-        const emotion = Object.entries(expressions)
-          .sort((a, b) => b[1] - a[1])[0][0];
-        result.innerText = `Detected Emotion: ${emotion}`;
-      } else {
+      canvas.width = image.width;
+      canvas.height = image.height;
+
+      faceapi.draw.drawDetections(canvas, detections);
+      faceapi.draw.drawFaceExpressions(canvas, detections);
+
+      document.body.removeChild(image); // remove raw image after processing
+
+      if (detections.length === 0) {
         result.innerText = "No face detected.";
+      } else {
+        result.innerText = "Emotions detected. Check canvas.";
       }
     });
   </script>
