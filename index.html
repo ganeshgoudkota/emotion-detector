@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Emotion Detector</title>
   <style>
     body {
@@ -19,6 +19,10 @@
     }
     #progress {
       margin-top: 10px;
+      font-weight: bold;
+    }
+    #canvas {
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -26,44 +30,52 @@
   <h2>Facial Emotion Detector</h2>
   
   <input type="file" id="imageUpload" accept="image/*" />
-  <br/>
+  <br />
   <div id="progress">Model loading...</div>
   <div id="result"></div>
-  <br/>
+  <br />
   <canvas id="canvas"></canvas>
 
-  <!-- Face API library -->
+  <!-- Load face-api.js library -->
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+  <script>
     const imageUpload = document.getElementById('imageUpload');
     const result = document.getElementById('result');
     const canvas = document.getElementById('canvas');
     const progress = document.getElementById('progress');
 
+    // Load models from your GitHub Pages models folder
     Promise.all([
-  faceapi.nets.tinyFaceDetector.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models'),
-  faceapi.nets.faceExpressionNet.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models')
-]).then(() => {
-  progress.innerText = "Model loaded! Upload a face image.";
-});
+      faceapi.nets.tinyFaceDetector.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models'),
+      faceapi.nets.faceExpressionNet.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models')
+    ]).then(() => {
+      progress.innerText = "Model loaded! Upload a face image.";
+    }).catch(err => {
+      progress.innerText = "Error loading models: " + err;
+      console.error(err);
+    });
 
     imageUpload.addEventListener('change', async () => {
+      if (!imageUpload.files.length) return;
       result.innerText = "Detecting...";
+      
       const image = await faceapi.bufferToImage(imageUpload.files[0]);
-      canvas.innerHTML = "";
-      canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
 
-      document.body.append(image);
+      // Clear canvas and previous images
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      canvas.width = image.width;
+      canvas.height = image.height;
+
+      document.body.appendChild(image);
+
       const detections = await faceapi
         .detectAllFaces(image, new faceapi.TinyFaceDetectorOptions())
         .withFaceExpressions();
 
-      canvas.width = image.width;
-      canvas.height = image.height;
-
       faceapi.draw.drawDetections(canvas, detections);
       faceapi.draw.drawFaceExpressions(canvas, detections);
 
-      document.body.removeChild(image); // remove raw image after processing
+      document.body.removeChild(image); // remove raw image from body
 
       if (detections.length === 0) {
         result.innerText = "No face detected.";
