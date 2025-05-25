@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Emotion Detector Test</title>
+  <title>Emotion Detector with Progress</title>
   <style>
     body { font-family: Arial; text-align: center; margin: 20px; }
     #progress { font-weight: bold; margin-bottom: 10px; }
@@ -12,7 +12,7 @@
 <body>
   <h2>Facial Emotion Detector</h2>
   <input type="file" id="imageUpload" accept="image/*" />
-  <div id="progress">Loading model...</div>
+  <div id="progress">Loading models: 0%</div>
   <div id="result"></div>
   <canvas id="canvas"></canvas>
 
@@ -23,14 +23,35 @@
     const canvas = document.getElementById('canvas');
     const progress = document.getElementById('progress');
 
-    Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models'),
-      faceapi.nets.faceExpressionNet.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models')
-    ]).then(() => {
-      progress.textContent = "Model loaded! Please upload a face image.";
-    }).catch(e => {
-      progress.textContent = "Error loading models: " + e;
-      console.error(e);
+    async function loadModelsWithProgress() {
+      const modelUrls = [
+        'https://ganeshgoudkota.github.io/emotion-detector/models/tiny_face_detector_model-weights_manifest.json',
+        'https://ganeshgoudkota.github.io/emotion-detector/models/face_expression_model-weights_manifest.json'
+      ];
+      const total = modelUrls.length;
+      let loaded = 0;
+
+      function updateProgress() {
+        const percent = Math.round((loaded / total) * 100);
+        progress.textContent = `Loading models: ${percent}%`;
+      }
+
+      // Load tinyFaceDetector
+      await faceapi.nets.tinyFaceDetector.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models');
+      loaded++;
+      updateProgress();
+
+      // Load faceExpressionNet
+      await faceapi.nets.faceExpressionNet.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models');
+      loaded++;
+      updateProgress();
+    }
+
+    loadModelsWithProgress().then(() => {
+      progress.textContent = "Models loaded! Upload a face image.";
+    }).catch(err => {
+      progress.textContent = "Error loading models: " + err;
+      console.error(err);
     });
 
     imageUpload.addEventListener('change', async () => {
