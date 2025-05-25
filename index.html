@@ -1,0 +1,53 @@
+<html>
+<head>
+  <title>Emotion Detection</title>
+  <style>
+    body { text-align: center; font-family: sans-serif; margin-top: 50px; }
+    #result { font-size: 20px; margin-top: 20px; }
+    img { max-width: 300px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <h1>Facial Emotion Detection</h1>
+  <input type="file" id="imageUpload" accept="image/*">
+  <div id="result">Upload a photo to detect emotion</div>
+  <img id="preview" />
+
+  <!-- Load face-api.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+
+  <script>
+    const imageUpload = document.getElementById('imageUpload');
+    const preview = document.getElementById('preview');
+    const result = document.getElementById('result');
+
+    Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/models'),
+      faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/models')
+    ]).then(() => {
+      result.innerText = "Model loaded! Upload a face image.";
+    });
+
+    imageUpload.addEventListener('change', async () => {
+      const file = imageUpload.files[0];
+      preview.src = URL.createObjectURL(file);
+
+      preview.onload = async () => {
+        const detections = await faceapi
+          .detectSingleFace(preview, new faceapi.TinyFaceDetectorOptions())
+          .withFaceExpressions();
+
+        if (detections && detections.expressions) {
+          const expressions = detections.expressions;
+          const emotion = Object.entries(expressions)
+            .sort((a, b) => b[1] - a[1])[0][0];
+          result.innerText = `Detected Emotion: ${emotion}`;
+        } else {
+          result.innerText = "No face detected.";
+        }
+      };
+    });
+  </script>
+</body>
+</html>
