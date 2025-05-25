@@ -41,11 +41,11 @@
     const progress = document.getElementById('progress');
 
     Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri('models'),
-      faceapi.nets.faceExpressionNet.loadFromUri('models')
-    ]).then(() => {
-      progress.innerText = "Model loaded! Upload a face image.";
-    });
+  faceapi.nets.tinyFaceDetector.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models'),
+  faceapi.nets.faceExpressionNet.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models')
+]).then(() => {
+  progress.innerText = "Model loaded! Upload a face image.";
+});
 
     imageUpload.addEventListener('change', async () => {
       result.innerText = "Detecting...";
