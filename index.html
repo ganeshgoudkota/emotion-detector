@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Emotion Detection with Submit</title>
+  <title>Emotion Detection with Submit and Loading Progress</title>
   <style>
     body { text-align: center; font-family: sans-serif; margin-top: 50px; }
     #result { font-size: 20px; margin-top: 20px; }
@@ -35,13 +35,28 @@
       result.innerText = "Model loaded! Upload a face image.";
     });
 
-    // Enable Submit only when an image is selected
     imageUpload.addEventListener('change', () => {
       selectedFile = imageUpload.files[0];
       if (selectedFile) {
+        result.innerText = "Loading image: 0%";
+        submitBtn.disabled = true;
+
         preview.src = URL.createObjectURL(selectedFile);
-        result.innerText = "Click Submit to detect emotion";
-        submitBtn.disabled = false;
+
+        // Fake loading progress using interval
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 10;
+          if (progress >= 90) clearInterval(interval);
+          result.innerText = `Loading image: ${progress}%`;
+        }, 100);
+
+        preview.onload = () => {
+          clearInterval(interval);
+          result.innerText = "Image loaded! Click Submit to detect emotion";
+          submitBtn.disabled = false;
+        };
+
       } else {
         submitBtn.disabled = true;
         result.innerText = "Upload a photo to detect emotion";
@@ -52,7 +67,7 @@
     submitBtn.addEventListener('click', async () => {
       if (!selectedFile) return;
       result.innerText = "Detecting...";
-      await preview.decode(); // wait for image to load
+      await preview.decode();
 
       const detections = await faceapi
         .detectSingleFace(preview, new faceapi.TinyFaceDetectorOptions())
