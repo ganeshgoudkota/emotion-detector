@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Emotion Detector with Loading Progress</title>
+  <title>Face Emotion, Age & Gender Detector</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -20,26 +20,22 @@
 </head>
 <body>
 
-  <h2>Facial Emotion Detector</h2>
+  <h2>Facial Emotion, Age & Gender Detector</h2>
   <input type="file" id="imageUpload" accept="image/*" />
   <div id="progress">Loading models: 0%</div>
   <div id="result"></div>
   <canvas id="canvas"></canvas>
 
-  <!-- Load face-api.js library -->
   <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
-
   <script>
     const progress = document.getElementById('progress');
     const result = document.getElementById('result');
     const imageUpload = document.getElementById('imageUpload');
     const canvas = document.getElementById('canvas');
 
-    // Load models with progress simulation
     async function loadModels() {
       let loaded = 0;
-      const total = 2;
-
+      const total = 3;
       function updateProgress() {
         const percent = Math.round((loaded / total) * 100);
         progress.textContent = `Loading models: ${percent}%`;
@@ -49,6 +45,9 @@
       loaded++; updateProgress();
 
       await faceapi.nets.faceExpressionNet.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models');
+      loaded++; updateProgress();
+
+      await faceapi.nets.ageGenderNet.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models');
       loaded++; updateProgress();
 
       progress.textContent = "Models loaded! Upload a face image.";
@@ -64,27 +63,34 @@
       if (!file) return;
 
       result.textContent = "Detecting...";
+      const img = await faceapi.bufferToImage(file);
 
-      const image = await faceapi.bufferToImage(file);
-      canvas.width = image.width;
-      canvas.height = image.height;
+      canvas.width = img.width;
+      canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(image, 0, 0);
+      ctx.drawImage(img, 0, 0);
 
       const detections = await faceapi
-        .detectAllFaces(image, new faceapi.TinyFaceDetectorOptions())
-        .withFaceExpressions();
+        .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions())
+        .withFaceExpressions()
+        .withAgeAndGender();
 
-      if (detections.length === 0) {
+      if (!detections.length) {
         result.textContent = "No face detected.";
-      } else {
-        result.textContent = "Emotions detected.";
-        faceapi.draw.drawDetections(canvas, detections);
-        faceapi.draw.drawFaceExpressions(canvas, detections);
+        return;
       }
+
+      result.textContent = `Detected ${detections.length} face(s).`;
+
+      detections.forEach(det => {
+        const { age, gender, expressions, detection } = det;
+        const topEmotion = Object.entries(expressions).sort((a, b) => b[1] - a[1])[0][0];
+        const label = `Age: ${Math.round(age)}, Gender: ${gender}, Emotion: ${topEmotion}`;
+        const drawBox = new faceapi.draw.DrawBox(detection.box, { label });
+        drawBox.draw(canvas);
+      });
     });
   </script>
-
 </body>
 </html>
