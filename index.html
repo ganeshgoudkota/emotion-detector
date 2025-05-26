@@ -2,33 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Emotion Detector with Progress</title>
+  <title>Emotion Detector with Loading Progress</title>
   <style>
-    body { font-family: Arial; text-align: center; margin: 20px; }
-    #progress { font-weight: bold; margin-bottom: 10px; }
-    canvas { margin-top: 10px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 30px;
+    }
+    #progress {
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    canvas {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
+
   <h2>Facial Emotion Detector</h2>
   <input type="file" id="imageUpload" accept="image/*" />
   <div id="progress">Loading models: 0%</div>
   <div id="result"></div>
   <canvas id="canvas"></canvas>
 
-  <!-- Load face-api.js first -->
+  <!-- Load face-api.js library -->
   <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
 
-  <!-- Your code here, AFTER face-api.js -->
   <script>
-    const imageUpload = document.getElementById('imageUpload');
-    const result = document.getElementById('result');
-    const canvas = document.getElementById('canvas');
     const progress = document.getElementById('progress');
+    const result = document.getElementById('result');
+    const imageUpload = document.getElementById('imageUpload');
+    const canvas = document.getElementById('canvas');
 
-    async function loadModelsWithProgress() {
-      const total = 2;
+    // Load models with progress simulation
+    async function loadModels() {
       let loaded = 0;
+      const total = 2;
 
       function updateProgress() {
         const percent = Math.round((loaded / total) * 100);
@@ -36,36 +46,35 @@
       }
 
       await faceapi.nets.tinyFaceDetector.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models');
-      loaded++;
-      updateProgress();
+      loaded++; updateProgress();
 
       await faceapi.nets.faceExpressionNet.loadFromUri('https://ganeshgoudkota.github.io/emotion-detector/models');
-      loaded++;
-      updateProgress();
+      loaded++; updateProgress();
+
+      progress.textContent = "Models loaded! Upload a face image.";
     }
 
-    loadModelsWithProgress().then(() => {
-      progress.textContent = "Models loaded! Upload a face image.";
-    }).catch(err => {
-      progress.textContent = "Error loading models: " + err;
+    loadModels().catch(err => {
+      progress.textContent = "Error loading models.";
       console.error(err);
     });
 
     imageUpload.addEventListener('change', async () => {
-      if (!imageUpload.files.length) return;
+      const file = imageUpload.files[0];
+      if (!file) return;
 
       result.textContent = "Detecting...";
 
-      const img = await faceapi.bufferToImage(imageUpload.files[0]);
-
-      canvas.width = img.width;
-      canvas.height = img.height;
-
+      const image = await faceapi.bufferToImage(file);
+      canvas.width = image.width;
+      canvas.height = image.height;
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(image, 0, 0);
 
-      const detections = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
+      const detections = await faceapi
+        .detectAllFaces(image, new faceapi.TinyFaceDetectorOptions())
+        .withFaceExpressions();
 
       if (detections.length === 0) {
         result.textContent = "No face detected.";
@@ -76,5 +85,6 @@
       }
     });
   </script>
+
 </body>
 </html>
